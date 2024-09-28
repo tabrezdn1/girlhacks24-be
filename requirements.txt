@@ -1,0 +1,17 @@
+pydantic
+
+pydantic-settings
+fastapi
+pytest
+langchain
+langchain-community
+langchain-core
+langchain-qdrant
+langchain-openai
+langgraph
+langsmith
+starlette
+uvicorn
+dotenv
+motor
+bson
