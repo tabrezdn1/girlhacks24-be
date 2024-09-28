@@ -125,7 +125,7 @@ song_recommendation_chain = (
 
 # Message formatting chain
 format_message_prompt = ChatPromptTemplate.from_template("""
-You are a helpful disco music chatbot. 
+You are a helpful disco music assistant. 
 Given the user input and the list of songs with links, create a friendly response.
 User input: {input}
 Songs: {songs}
