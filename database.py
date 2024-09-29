@@ -2,13 +2,15 @@
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from setting import config
+
 # Load environment variables
 
 # Retrieve environment variables
-MONGODB_USER = os.getenv("MONGODB_USER")
-MONGODB_PASSWORD = os.getenv("MONGODB_PASSWORD")
-MONGODB_CLUSTER = os.getenv("MONGODB_CLUSTER")
-MONGODB_DB = os.getenv("MONGODB_DB")
+MONGODB_USER = config.MONGODB_USER
+MONGODB_PASSWORD = config.MONGODB_PASSWORD
+MONGODB_CLUSTER = config.MONGODB_CLUSTER
+MONGODB_DB = config.MONGODB_DB
 
 # Construct the MongoDB connection string
 MONGODB_URL = (

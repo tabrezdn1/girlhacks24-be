@@ -27,14 +27,6 @@ app.add_middleware(
 )
 
 # Get API keys from environment variables
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
-
-if not OPENAI_API_KEY:
-    raise ValueError("No OPENAI_API_KEY provided. Set the OPENAI_API_KEY environment variable.")
-
-if not TAVILY_API_KEY:
-    raise ValueError("No TAVILY_API_KEY provided. Set the TAVILY_API_KEY environment variable.")
 
 if __name__ == "__main__":
     import uvicorn

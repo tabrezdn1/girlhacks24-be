@@ -11,20 +11,16 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
 
+from setting import get_config, config
+
 # Enable LangChain debugging
 set_debug(True)
-
 # Load environment variables
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+OPENAI_API_KEY = config.OPENAI_API_KEY
+TAVILY_API_KEY = config.TAVILY_API_KEY
 
-if not OPENAI_API_KEY:
-    raise ValueError("No OPENAI_API_KEY provided. Set the OPENAI_API_KEY environment variable.")
 
-if not TAVILY_API_KEY:
-    raise ValueError("No TAVILY_API_KEY provided. Set the TAVILY_API_KEY environment variable.")
 
-# Initialize the OpenAI Chat model
 openai_chat_model = ChatOpenAI(model="gpt-4o", openai_api_key=OPENAI_API_KEY, temperature=1.0)
 
 # Initialize FastAPI router

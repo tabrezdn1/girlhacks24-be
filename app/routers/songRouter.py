@@ -32,26 +32,30 @@ if not logger.hasHandlers():
     logger.addHandler(file_handler)
 
 router = APIRouter()
+
+
 @router.get("/all_songs")
-async def get_all_songs():
-    logger.debug("Received request to get all songs")
+async def get_all_songs(limit: int = 100):
+    logger.debug("Received request to get all songs with a limit of {limit}")
     try:
-        songs_cursor = db["songs"].find()
-        all_songs = await songs_cursor.to_list(length=None)  # Retrieve all documents
+        # Fetch limited number of songs from the database
+        songs_cursor = db["songs"].find().limit(limit)
+        all_songs = await songs_cursor.to_list(length=limit)
+
+        # Log the number of songs retrieved
         logger.info(f"Retrieved {len(all_songs)} songs from database")
 
-        detailed_songs = []
-        for song in all_songs:
-            song["id"] = str(song["_id"])  # Convert ObjectId to string
-            detailed_song = Song(**song)
-            detailed_songs.append(detailed_song)
-            logger.debug(f"Processed song: {detailed_song}")
+        # Use list comprehension to process songs and convert ObjectId to string
+        detailed_songs = [Song(**{**song, "id": str(song["_id"])}) for song in all_songs]
 
-        logger.debug(f"Returning all songs: {detailed_songs}")
-        return all_songs
+        logger.debug(f"Returning {len(detailed_songs)} songs")
+        return detailed_songs
+
     except Exception as e:
         logger.error(f"Error retrieving all songs: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail="Failed to retrieve songs")
+
+
 @router.post("/create_song", response_model=Song)
 async def create_song(song: SongCreate):
     logger.debug(f"Received request to create song: {song}")
