@@ -2,7 +2,6 @@
 import os
 import logging
 from fastapi import FastAPI
-from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 
 from app.routers import songRouter, playlistRouter, processSongRouter
@@ -19,7 +18,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load environment variables
-load_dotenv()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Update this to match your Next.js app's URL

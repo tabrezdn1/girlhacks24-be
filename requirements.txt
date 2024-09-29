@@ -12,6 +12,4 @@ langgraph
 langsmith
 starlette
 uvicorn
-dotenv
 motor
-bson

@@ -1,0 +1,16 @@
+version: "3"
+services:
+  girlhackBE:
+    container_name: girlhackBE
+    image: girlhack_be:main
+    environment:
+      # New Environment Variables
+      TAVILY_API_KEY: "${TAVILY_API_KEY}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      MONGODB_USER: "${MONGODB_USER}"
+      MONGODB_PASSWORD: "${MONGODB_PASSWORD}"
+      MONGODB_CLUSTER: "${MONGODB_CLUSTER}"
+      MONGODB_DB: "${MONGODB_DB}"
+    ports:
+      - "8000:8000"
+    restart: always

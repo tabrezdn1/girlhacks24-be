@@ -1,10 +1,8 @@
 # database.py
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()
 
 # Retrieve environment variables
 MONGODB_USER = os.getenv("MONGODB_USER")

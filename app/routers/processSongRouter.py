@@ -1,6 +1,5 @@
 import os
 
-from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
 from langchain.globals import set_debug
 from langchain_community.tools import TavilySearchResults
@@ -13,7 +12,6 @@ import json
 import logging
 set_debug=True
 # Load environment variables
-load_dotenv()
 
 # Get API keys from environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -125,14 +123,26 @@ song_recommendation_chain = (
 
 # Message formatting chain
 format_message_prompt = ChatPromptTemplate.from_template("""
-You are a helpful disco music assistant. 
+You are a helpful disco music assistant.
 Given the user input and the list of songs with links, create a friendly response.
+For each song, use the song name and artist to add extra information such as album, language, release year, and genre.
+
 User input: {input}
 Songs: {songs}
+
 Format your response as a JSON object with 'greeting' and 'recommendations' fields.
+Each recommendation should include the following fields:
+- song_name
+- artist
+- youtube_link
+- spotify_link
+- album
+- language
+- release_year
+- genre
+
 **Return only the JSON object without any additional text, explanations, or formatting such as code blocks.**
 """)
-
 format_message_chain = format_message_prompt | llm | StrOutputParser() | parse_llm_response
 
 # Combine the chains
