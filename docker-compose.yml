@@ -11,8 +11,6 @@ services:
       MONGODB_PASSWORD: "${MONGODB_PASSWORD}"
       MONGODB_CLUSTER: "${MONGODB_CLUSTER}"
       MONGODB_DB: "${MONGODB_DB}"
-      client_id: "{client_id}"
-      client_secret: "{client_secret}"
     ports:
       - "8000:8000"
     restart: always
