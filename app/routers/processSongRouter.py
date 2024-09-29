@@ -121,7 +121,7 @@ def tavily_search(song_name: str, artist: str) -> dict:
     # Use the Tavily tool
     results = tavily_tool.run(query)
     song_metadata = search_song(song_name, artist, SPOTIFY_ACCESS_TOKEN)
-    spotify_link = song_metadata.get("Spotify Link", 'N/A')
+    spotify_link = song_metadata.get("Spotify Link", None)
 
     # Process the results to extract YouTube and Spotify links
     youtube_link = None
@@ -158,7 +158,7 @@ def fetch_song_info(songs):
         info = tavily_search(song['song_name'], song['artist'])
 
         # Check if at least one link is available
-        if info.get('youtube_link') or info.get('spotify_link'):
+        if info.get('youtube_link') and info.get('spotify_link'):
             song.update(info)
             updated_songs.append(song)
             logger.debug(f"Added song: {song['song_name']} by {song['artist']}")
