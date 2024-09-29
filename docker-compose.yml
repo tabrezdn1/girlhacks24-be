@@ -11,6 +11,7 @@ services:
       MONGODB_PASSWORD: "${MONGODB_PASSWORD}"
       MONGODB_CLUSTER: "${MONGODB_CLUSTER}"
       MONGODB_DB: "${MONGODB_DB}"
+      SPOTIFY_ACCESS_TOKEN: "${SPOTIFY_ACCESS_TOKEN}"
     ports:
       - "8000:8000"
     restart: always
