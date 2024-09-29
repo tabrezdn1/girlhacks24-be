@@ -1,7 +1,6 @@
 import os
-import time
-import urllib
-import requests
+import json
+import logging
 
 from fastapi import APIRouter, HTTPException
 from langchain.globals import set_debug
@@ -9,19 +8,16 @@ from langchain_community.tools import TavilySearchResults
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 from langchain.prompts import ChatPromptTemplate
-from langchain.schema.runnable import RunnablePassthrough, RunnableParallel
+from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
-import json
-import logging
-set_debug=True
-# Load environment variables
 
-# Get API keys from environment variables
+# Enable LangChain debugging
+set_debug(True)
+
+# Load environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
-SPOTIFY_ACCESS_TOKEN = os.getenv('SPOTIFY_ACCESS_TOKEN')
-if not SPOTIFY_ACCESS_TOKEN:
-    raise ValueError("SPOTIFY_ACCESS_TOKEN environment variable not set.")
+
 if not OPENAI_API_KEY:
     raise ValueError("No OPENAI_API_KEY provided. Set the OPENAI_API_KEY environment variable.")
 
@@ -29,137 +25,85 @@ if not TAVILY_API_KEY:
     raise ValueError("No TAVILY_API_KEY provided. Set the TAVILY_API_KEY environment variable.")
 
 # Initialize the OpenAI Chat model
-llm = ChatOpenAI(model="gpt-4o", openai_api_key=OPENAI_API_KEY, temperature=1.0)
-router = APIRouter()
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  # Set the lowest level to capture all types of logs
+openai_chat_model = ChatOpenAI(model="gpt-4", openai_api_key=OPENAI_API_KEY, temperature=1.0)
 
-# Create handlers
+# Initialize FastAPI router
+router = APIRouter()
+
+# Configure logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Capture all types of logs
+
+# Create console handler
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)
 
+# Create file handler
 file_handler = logging.FileHandler('songs.log')
 file_handler.setLevel(logging.DEBUG)
 
-# Create formatter and add it to the handlers
+# Define log format
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 console_handler.setFormatter(formatter)
 file_handler.setFormatter(formatter)
 
-# Add handlers to the logger
+# Add handlers to the logger if not already present
 if not logger.hasHandlers():
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
-def search_song(song_name, artist_name, token, limit=1):
-    """
-    Searches for a song on Spotify by song name and artist name.
 
-    :param song_name: Name of the song to search for.
+def tavily_search(song_title: str, artist_name: str) -> dict:
+    """
+    Finds YouTube and Spotify links for a given song title and artist using Tavily.
+
+    :param song_title: Title of the song to search for.
     :param artist_name: Name of the artist.
-    :param token: Spotify API access token.
-    :param limit: Number of search results to return.
-    :return: JSON object containing song metadata.
+    :return: Dictionary containing YouTube and Spotify links.
     """
-    base_url = 'https://api.spotify.com/v1/search'
-
-    # Construct the query to include both song name and artist for better accuracy
-    query = f"track:{song_name} artist:{artist_name}"
-    encoded_query = urllib.parse.quote(query)
-
-    params = {
-        'q': query,
-        'type': 'track',
-        'limit': limit
-    }
-
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json'
-    }
-
-    try:
-        response = requests.get(base_url, headers=headers, params=params)
-        response.raise_for_status()  # Raises HTTPError, if one occurred
-
-        data = response.json()
-        tracks = data.get('tracks', {}).get('items', [])
-
-        if not tracks:
-            print("No tracks found for the given song name and artist.")
-            return {}
-
-        # Extract the first track's metadata
-        track = tracks[0]
-        song_metadata = {
-            'Song Name': track.get('name'),
-            'Artists': ', '.join([artist['name'] for artist in track.get('artists', [])]),
-            'Album': track.get('album', {}).get('name'),
-            'Release Date': track.get('album', {}).get('release_date'),
-            'Spotify Link': track.get('external_urls', {}).get('spotify'),
-            'Preview URL': track.get('preview_url'),
-            'Duration (ms)': track.get('duration_ms'),
-            'Popularity': track.get('popularity'),
-            'Explicit': track.get('explicit')
-        }
-
-        return song_metadata
-    except Exception as err:
-        print(f"An error occurred: {err}")
-
-    return {}
-
-def tavily_search(song_name: str, artist: str) -> dict:
-    """Find YouTube and Spotify links for songs given a song name and artist."""
     # Initialize the TavilySearchResults tool
-    tavily_tool = TavilySearchResults(max_results=1, api_key=TAVILY_API_KEY)
+    tavily_search_tool = TavilySearchResults(max_results=1, api_key=TAVILY_API_KEY)
 
-    # Construct the queries
-    query = f"{song_name} {artist} youtube"
+    # Construct the search queries
+    youtube_query = f"{song_title} {artist_name} youtube"
+    spotify_query = f"{song_title} {artist_name} spotify"
 
-    # Use the Tavily tool
-    results = tavily_tool.run(query)
-    song_metadata = search_song(song_name, artist, SPOTIFY_ACCESS_TOKEN)
-    spotify_link = song_metadata.get("Spotify Link", None)
+    # Execute the searches
+    youtube_results = tavily_search_tool.run(youtube_query)
+    spotify_results = tavily_search_tool.run(spotify_query)
 
-    # Process the results to extract YouTube and Spotify links
+    # Extract YouTube link
     youtube_link = None
-    if results and isinstance(results, list) and len(results) > 0:
-        first_result = results[0]
-        youtube_link = first_result.get('url')
+    if youtube_results and isinstance(youtube_results, list) and len(youtube_results) > 0:
+        first_youtube_result = youtube_results[0]
+        youtube_link = first_youtube_result.get('url')
 
+    # Extract Spotify link
+    spotify_link = None
+    if spotify_results and isinstance(spotify_results, list) and len(spotify_results) > 0:
+        first_spotify_result = spotify_results[0]
+        spotify_link = first_spotify_result.get("url", None)
 
     return {
         "youtube_link": youtube_link,
         "spotify_link": spotify_link
     }
-# Initialize OpenAI client
 
+def enrich_song_links(songs: list) -> list:
+    """
+    Enriches each song in the list with YouTube and Spotify links.
 
-# Song recommendation chain
-song_recommendation_prompt = ChatPromptTemplate.from_template("""
-Based on the user's input: {input}
-Generate a list of 3 disco songs. Return only a JSON array of objects, each with 'song_name' and 'artist' fields. Do not include any additional text, explanations, or formatting such as code blocks.
-""")
-def parse_llm_response(response):
-    try:
-        logging.info(f" response from first chain{response}")
-
-        return json.loads(response)
-    except json.JSONDecodeError:
-        logger.error(f"Failed to parse LLM response as JSON: {response}")
-        return {"error": "Failed to generate song list"}
-
-
-def fetch_song_info(songs):
+    :param songs: List of songs with 'song_name' and 'artist' fields.
+    :return: List of songs updated with 'youtube_link' and 'spotify_link'.
+    """
     updated_songs = []
     for song in songs:
-        info = tavily_search(song['song_name'], song['artist'])
+        links = tavily_search(song['song_name'], song['artist'])
 
-        # Check if at least one link is available
-        if info.get('youtube_link') and info.get('spotify_link'):
-            song.update(info)
+        # Check if both YouTube and Spotify links are available
+        if links.get('youtube_link') and links.get('spotify_link'):
+            song.update(links)
             updated_songs.append(song)
             logger.debug(f"Added song: {song['song_name']} by {song['artist']}")
         else:
@@ -167,19 +111,49 @@ def fetch_song_info(songs):
 
     return updated_songs
 
+# Define the song recommendation prompt
+song_recommendation_prompt = ChatPromptTemplate.from_template("""
+Generate a list of 3 disco songs that would suit a person in the following mood: {input}
+**Do not include any songs by the Bee Gees.**
+Return only a JSON array of objects, each with 'song_name', 'artist', and 'mood_match' fields. The 'mood_match' field should briefly explain why the song fits the given mood. Do not include any additional text, explanations, or formatting such as code blocks.
+""")
+def parse_llm_response(response: str) -> dict:
+    """
+    Parses the response from the language model.
+
+    :param response: JSON string response from the LLM.
+    :return: Parsed JSON as a dictionary.
+    """
+    try:
+        logging.info(f"Response from LLM: {response}")
+        return json.loads(response)
+    except json.JSONDecodeError:
+        logger.error(f"Failed to parse LLM response as JSON: {response}")
+        return {"error": "Failed to generate song list"}
+
+def fetch_song_info(songs: list) -> list:
+    """
+    Fetches YouTube and Spotify links for each song in the list.
+
+    :param songs: List of songs with 'song_name' and 'artist' fields.
+    :return: List of songs enriched with 'youtube_link' and 'spotify_link'.
+    """
+    return enrich_song_links(songs)
+
+# Define the song recommendation chain
 song_recommendation_chain = (
     RunnablePassthrough().assign(
         songs=(
-            song_recommendation_prompt 
-            | llm 
-            | StrOutputParser() 
+            song_recommendation_prompt
+            | openai_chat_model
+            | StrOutputParser()
             | parse_llm_response
             | fetch_song_info
         )
     )
 )
 
-# Message formatting chain
+# Define the message formatting prompt
 format_message_prompt = ChatPromptTemplate.from_template("""
 You are a helpful disco music assistant.
 Given the user input and the list of songs with links, create a friendly response.
@@ -200,27 +174,41 @@ Each recommendation should include the following fields:
 
 **Return only the JSON object without any additional text, explanations, or formatting such as code blocks.**
 """)
-format_message_chain = format_message_prompt | llm | StrOutputParser() | parse_llm_response
 
-# Combine the chains
+# Define the message formatting chain
+format_message_chain = (
+    format_message_prompt
+    | openai_chat_model
+    | StrOutputParser()
+    | parse_llm_response
+)
+
+# Combine the recommendation and formatting chains
 combined_chain = song_recommendation_chain | format_message_chain
 
+# Define the request model
 class SongRequest(BaseModel):
     input: str
 
 @router.post("/process-song")
 async def process_song(request: SongRequest):
+    """
+    Endpoint to process song recommendations based on user input.
+
+    :param request: SongRequest containing the user's mood input.
+    :return: JSON object with a greeting and song recommendations.
+    """
     try:
         # Prepare the input for the combined chain
         chain_input = {"input": request.input}
 
-        # Run the combined chain
+        # Run the combined chain asynchronously
         result = await combined_chain.ainvoke(chain_input)
 
         # Log the response
         logger.info(f"Chain Response: {result}")
 
-        # Check if there was an error in song generation
+        # Check for errors in the response
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
 
